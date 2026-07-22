@@ -1,0 +1,22 @@
+{
+  "name": "roach-to-jantar-mantar",
+  "version": "1.0.0",
+  "description": "A satirical top-down arcade stealth game. You are a tiny cockroach. Reach Jantar Mantar alive.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "npm install",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && npx gh-pages -d dist"
+  },
+  "dependencies": {
+    "phaser": "^3.87.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8",
+    "gh-pages": "^6.1.1"
+  }
+}

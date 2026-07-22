@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#ece3cf"/>
+  <!-- little hand-drawn cockroach, facing up -->
+  <g transform="translate(64 70)" stroke="#2e1c10" stroke-width="3" stroke-linecap="round">
+    <!-- legs -->
+    <path d="M-12,-8 L-28,-16 M-13,2 L-30,2 M-12,12 L-28,22 M12,-8 L28,-16 M13,2 L30,2 M12,12 L28,22" fill="none"/>
+    <!-- abdomen -->
+    <ellipse cx="0" cy="4" rx="16" ry="24" fill="#7a4c28"/>
+    <path d="M0,-14 L0,24" stroke="#5a3419" stroke-width="2"/>
+    <!-- head -->
+    <circle cx="0" cy="-24" r="10" fill="#5a3419"/>
+    <!-- eyes -->
+    <circle cx="-4" cy="-26" r="1.8" fill="#fff" stroke="none"/>
+    <circle cx="4" cy="-26" r="1.8" fill="#fff" stroke="none"/>
+    <!-- antennae -->
+    <path d="M-5,-32 C-14,-44 -26,-48 -34,-46 M5,-32 C14,-44 26,-48 34,-46" fill="none"/>
+  </g>
+  <text x="64" y="118" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#8a2a1e">JANTAR MANTAR →</text>
+</svg>
