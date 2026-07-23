@@ -1,9 +1,10 @@
-/** Game over overlay: a random funny epitaph + retry. */
+/** Game over: a proper dialog panel with a random funny epitaph + retry. */
 
 import Phaser from 'phaser';
-import { FONT, GAME_OVER_LINES } from '../config';
+import { CLEAR_FONT, GAME_OVER_LINES } from '../config';
 import { fmtTime } from '../systems/Save';
 import { Audio } from '../audio/AudioManager';
+import { dialogPanel, roundButton, BTN_ORANGE } from '../ui/Widgets';
 import type { DeathCause } from './GameScene';
 
 const CAUSE_LINES: Record<DeathCause, string> = {
@@ -21,36 +22,40 @@ export default class GameOverScene extends Phaser.Scene {
   create(data: { cause: DeathCause; elapsed: number; progress: number }): void {
     const w = this.scale.width;
     const h = this.scale.height;
+    const cx = w / 2;
+    const cy = h * 0.5;
 
-    this.add.rectangle(0, 0, w, h, 0x1c1a17, 0.72).setOrigin(0).setInteractive();
+    // dim + swallow clicks behind the dialog
+    this.add.rectangle(0, 0, w, h, 0x1c1a17, 0.72).setOrigin(0).setInteractive().setDepth(699);
+
+    const pw = Math.min(w * 0.88, 460);
+    const ph = Math.min(h * 0.58, 540);
+    dialogPanel(this, cx, cy, pw, ph);
 
     const line = Phaser.Utils.Array.GetRandom(GAME_OVER_LINES);
     const pct = Math.round(data.progress * 100);
 
-    this.add.text(w / 2, h * 0.3, '💀', { fontSize: '52px' }).setOrigin(0.5);
-    const title = this.add.text(w / 2, h * 0.42, line, {
-      fontFamily: FONT, fontSize: '32px', color: '#fffcf2', fontStyle: 'bold', align: 'center',
-      wordWrap: { width: w * 0.85 }
-    }).setOrigin(0.5);
-    title.setScale(0.6);
+    this.add.text(cx, cy - ph * 0.37, '💀', { fontSize: '58px' }).setOrigin(0.5).setDepth(701);
+
+    const title = this.add.text(cx, cy - ph * 0.13, line, {
+      fontFamily: CLEAR_FONT, fontSize: '30px', color: '#8a2a1e', fontStyle: 'bold',
+      align: 'center', wordWrap: { width: pw - 56 }
+    }).setOrigin(0.5).setDepth(701);
+    title.setScale(0.7);
     this.tweens.add({ targets: title, scale: 1, duration: 350, ease: 'Back.easeOut' });
 
-    this.add.text(w / 2, h * 0.52, CAUSE_LINES[data.cause], {
-      fontFamily: FONT, fontSize: '17px', color: '#d0c5a8', align: 'center'
-    }).setOrigin(0.5);
+    this.add.text(cx, cy + ph * 0.05, CAUSE_LINES[data.cause], {
+      fontFamily: CLEAR_FONT, fontSize: '17px', color: '#6e5a2e',
+      align: 'center', wordWrap: { width: pw - 56 }
+    }).setOrigin(0.5).setDepth(701);
 
-    this.add.text(w / 2, h * 0.6, `you scuttled ${pct}% of the way  ·  ⏱ ${fmtTime(data.elapsed)}`, {
-      fontFamily: FONT, fontSize: '15px', color: '#8f8577'
-    }).setOrigin(0.5);
-
-    const retry = this.add.text(w / 2, h * 0.73, '🔁  TRY AGAIN', {
-      fontFamily: FONT, fontSize: '24px', color: '#2e1c10', fontStyle: 'bold',
-      backgroundColor: '#e8b93c', padding: { x: 18, y: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this.tweens.add({ targets: retry, scale: 1.06, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.add.text(cx, cy + ph * 0.19, `scuttled ${pct}%  ·  ⏱ ${fmtTime(data.elapsed)}`, {
+      fontFamily: CLEAR_FONT, fontSize: '15px', color: '#8f8577', fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(701);
 
     const go = (): void => this.restartRun();
-    retry.on('pointerdown', go);
+    roundButton(this, cx, cy + ph * 0.36, 224, 58, 'TRY AGAIN', BTN_ORANGE, go);
+
     this.input.keyboard?.once('keydown-SPACE', go);
     this.input.keyboard?.once('keydown-ENTER', go);
     this.input.keyboard?.once('keydown-R', go);
@@ -58,6 +63,7 @@ export default class GameOverScene extends Phaser.Scene {
 
   private restartRun(): void {
     Audio.stopPartyMusic();
+    Audio.stopGameMusic();
     Audio.stopAmbience();
     Audio.pickup();
     this.scene.stop('UI');

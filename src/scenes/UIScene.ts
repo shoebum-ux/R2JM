@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import type GameScene from './GameScene';
 import { WORLD, ROADS, RING, GOAL } from '../maps/DelhiMap';
-import { FONT } from '../config';
+import { FONT, CLEAR_FONT } from '../config';
 import { VirtualJoystick } from '../ui/VirtualJoystick';
 import { Audio } from '../audio/AudioManager';
 import { fmtTime } from '../systems/Save';
@@ -132,12 +132,13 @@ export default class UIScene extends Phaser.Scene {
   }
 
   private makePauseOverlay(): void {
-    const dim = this.add.rectangle(0, 0, 10, 10, 0x1c1a17, 0.55).setOrigin(0);
-    const label = this.add.text(0, 0, '⏸️ PAUSED\nthe roach waits…\n(tap ⏸️ or press P)', {
-      fontFamily: FONT, fontSize: '24px', color: '#fffcf2', align: 'center'
+    const dim = this.add.rectangle(0, 0, 10, 10, 0x1c1a17, 0.6).setOrigin(0);
+    const panel = this.add.graphics();
+    const label = this.add.text(0, 0, '⏸  PAUSED\n\nthe roach waits…\ntap ⏸ or press P to resume', {
+      fontFamily: CLEAR_FONT, fontSize: '22px', color: '#5a4326', align: 'center', fontStyle: 'bold'
     }).setOrigin(0.5);
-    this.pauseOverlay = this.add.container(0, 0, [dim, label]).setDepth(700).setVisible(false);
-    this.pauseOverlay.setData('parts', { dim, label });
+    this.pauseOverlay = this.add.container(0, 0, [dim, panel, label]).setDepth(700).setVisible(false);
+    this.pauseOverlay.setData('parts', { dim, panel, label });
   }
 
   // ----------------------------------------------------------------- layout
@@ -161,9 +162,21 @@ export default class UIScene extends Phaser.Scene {
       b.txt.setPosition(x, y);
     });
 
-    const parts = this.pauseOverlay.getData('parts') as { dim: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text };
+    const parts = this.pauseOverlay.getData('parts') as {
+      dim: Phaser.GameObjects.Rectangle; panel: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text;
+    };
     parts.dim.setSize(w, h);
     parts.label.setPosition(w / 2, h / 2);
+    // cream dialog panel behind the pause text
+    const pw = Math.min(w * 0.82, 420), ph = 220;
+    const px = w / 2 - pw / 2, py = h / 2 - ph / 2;
+    parts.panel.clear();
+    parts.panel.fillStyle(0xffffff, 1);
+    parts.panel.fillRoundedRect(px, py, pw, ph, 24);
+    parts.panel.fillStyle(0xf1e7cd, 1);
+    parts.panel.fillRoundedRect(px + 6, py + 6, pw - 12, ph - 12, 18);
+    parts.panel.lineStyle(2, 0xd9c9a0, 1);
+    parts.panel.strokeRoundedRect(px + 14, py + 14, pw - 28, ph - 28, 12);
 
     this.drawMapBase(h);
   }
