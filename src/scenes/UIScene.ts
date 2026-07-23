@@ -150,10 +150,10 @@ export default class UIScene extends Phaser.Scene {
     this.distLabel.setPosition(w - 14, 12);
     this.timeLabel.setPosition(w - 14, 38);
 
-    // buttons bottom-right
+    // buttons bottom-right (inset to clear the frame's rounded corner)
     this.btns.forEach((b, i) => {
-      const x = w - 36 - i * 60;
-      const y = h - 38;
+      const x = w - 40 - i * 58;
+      const y = h - 44;
       b.img.setPosition(x, y);
       b.txt.setPosition(x, y);
     });
@@ -168,7 +168,7 @@ export default class UIScene extends Phaser.Scene {
   // ---------------------------------------------------------------- minimap
 
   private mapOrigin(h: number): { x: number; y: number } {
-    return { x: 12, y: h - WORLD.h * this.mapScale - 12 };
+    return { x: 16, y: h - WORLD.h * this.mapScale - 18 };
   }
 
   private drawMapBase(h: number): void {

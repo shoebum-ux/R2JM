@@ -111,7 +111,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private applyZoom(): void {
-    const z = Phaser.Math.Clamp(this.scale.width / 1100, 0.55, 1.05);
+    // Portrait (Instagram-Reel) viewport: base the zoom on the narrow width so
+    // the roach and threats stay readable while a good stretch of road ahead
+    // fits vertically.
+    const z = Phaser.Math.Clamp(this.scale.width / 560, 0.62, 1.15);
     this.cameras.main.setZoom(z);
   }
 

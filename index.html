@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#1c1a17" />
+  <meta name="theme-color" content="#141210" />
   <meta name="description" content="You are a tiny cockroach. Reach Jantar Mantar alive. A satirical top-down stealth game set in central Delhi." />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -13,25 +13,124 @@
   <link rel="apple-touch-icon" href="./icon.svg" />
   <title>Roach to Jantar Mantar</title>
   <style>
+    :root {
+      /* keep this in sync with FONT in src/config.ts */
+      --game-font: "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive;
+    }
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #1c1a17;
+      background: #141210;
       touch-action: none;
       -webkit-user-select: none;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
     }
-    #app { width: 100%; height: 100%; }
-    canvas { display: block; }
+
+    /* The dark backdrop the vertical frame floats on (the "outside"). */
+    .stage {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(120% 80% at 50% 0%, #2a251d 0%, #141210 60%, #0d0b09 100%);
+    }
+
+    /* The 9:16 vertical frame — Instagram-Reel shaped, feels like a device. */
+    .frame {
+      aspect-ratio: 9 / 16;
+      height: min(97vh, calc(97vw * 16 / 9));
+      max-height: 97vh;
+      display: flex;
+      flex-direction: column;
+      background: #1c1a17;
+      border: 6px solid #241a12;
+      border-radius: 30px 30px 22px 22px;
+      box-shadow:
+        0 0 0 2px #3a2c1d,
+        0 24px 60px rgba(0, 0, 0, 0.6),
+        0 4px 16px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Header band: title + "Gameplay" sub-header. */
+    .frame-header {
+      flex: 0 0 auto;
+      padding: 10px 16px 11px;
+      text-align: center;
+      background: linear-gradient(#efe6d0, #e6d9bb);
+      border-bottom: 3px solid #241a12;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      position: relative;
+      z-index: 2;
+    }
+    .frame-header .title {
+      font-family: var(--game-font);
+      font-weight: 700;
+      color: #8a2a1e;
+      font-size: clamp(15px, 3.2vh, 26px);
+      line-height: 1.05;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      letter-spacing: 0.2px;
+    }
+    .frame-header .subtitle {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 12px;
+      font-family: var(--game-font);
+      font-weight: 700;
+      font-size: clamp(9px, 1.5vh, 13px);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #f4ecd8;
+      background: #8a2a1e;
+      border-radius: 999px;
+      box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+    }
+    /* a little "live" dot for that streaming feel */
+    .frame-header .subtitle::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: #ff5a4a;
+      vertical-align: middle;
+      box-shadow: 0 0 6px #ff5a4a;
+      animation: blink 1.4s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.25; } }
+
+    /* The game viewport. Phaser (RESIZE mode) fills this exactly. */
+    #app {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+      background: #e6dcc3;
+    }
+    #app canvas { display: block; }
   </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="stage">
+    <div class="frame">
+      <header class="frame-header">
+        <div class="title">🪳 Roach to Jantar Mantar</div>
+        <div class="subtitle">Gameplay</div>
+      </header>
+      <div id="app"></div>
+    </div>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
