@@ -123,108 +123,97 @@ function roachFrame(scene: Phaser.Scene, key: string, legPhase: number): void {
 }
 
 /**
- * A big, crisp, cute hero cockroach for the title screen — drawn at high
- * resolution with smooth curves so it never looks like an upscaled sprite.
- * Faces up (antennae toward the top).
+ * High-resolution version of the top-down walking roach for the title screen —
+ * the same little fellow as in-game (faithful design, small eyes), just drawn
+ * big and smooth so it animates crisply instead of looking like an upscaled
+ * sprite. `phase` (-1 / 0 / 1) drives the leg + antenna walk cycle.
  */
-function buildMenuRoach(scene: Phaser.Scene): void {
-  tex(scene, 'roach_hero', 240, 270, (ctx) => {
-    const cx = 120, cy = 150;
+function menuRoachFrame(scene: Phaser.Scene, key: string, phase: number): void {
+  tex(scene, key, 190, 224, (ctx) => {
+    const cx = 95, cy = 118;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // --- legs (under the body) ---
+    // --- legs (tripod gait: middle pair counter-phases front/back) ---
     ctx.strokeStyle = '#2e1c10';
-    ctx.lineWidth = 8;
-    const legDefs = [
-      { ay: -48, kx: 36, ky: -22, fx: 64, fy: -44 }, // front
-      { ay: -4, kx: 42, ky: -4, fx: 70, fy: 0 },     // middle
-      { ay: 42, kx: 38, ky: 22, fx: 64, fy: 50 }     // back
-    ];
+    ctx.lineWidth = 7;
+    const rows = [-46, -6, 40];
     for (let s = -1; s <= 1; s += 2) {
-      for (const L of legDefs) {
+      rows.forEach((ay, i) => {
+        const ph = (i === 1 ? -phase : phase) * 10;
         ctx.beginPath();
-        ctx.moveTo(cx + s * 22, cy + L.ay);
-        ctx.quadraticCurveTo(cx + s * L.kx, cy + L.ky, cx + s * L.fx, cy + L.fy);
+        ctx.moveTo(cx + s * 20, cy + ay);
+        ctx.quadraticCurveTo(cx + s * 44, cy + ay - 4, cx + s * 66, cy + ay + 14 + ph);
         ctx.stroke();
-      }
+      });
     }
 
-    // --- antennae ---
-    ctx.lineWidth = 8;
-    for (let s = -1; s <= 1; s += 2) {
-      ctx.beginPath();
-      ctx.moveTo(cx + s * 8, cy - 92);
-      ctx.quadraticCurveTo(cx + s * 44, cy - 158, cx + s * 70, cy - 138);
-      ctx.stroke();
-    }
+    // --- antennae (sway with the walk) ---
+    const sway = phase * 12;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy - 84);
+    ctx.quadraticCurveTo(cx - 40 + sway, cy - 148, cx - 62 + sway, cy - 130);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 8, cy - 84);
+    ctx.quadraticCurveTo(cx + 40 + sway, cy - 148, cx + 62 + sway, cy - 130);
+    ctx.stroke();
 
     // --- abdomen ---
     ctx.beginPath();
-    ctx.ellipse(cx, cy + 20, 52, 76, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + 14, 42, 62, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#7a4c28';
     ctx.fill();
     ctx.strokeStyle = '#2e1c10';
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    // pronotum (shield behind the head)
+    // pronotum (shield behind head)
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 44, 36, 32, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy - 38, 30, 26, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#6a4020';
     ctx.fill();
     ctx.stroke();
 
-    // wing split + wing outlines + a couple of segment hints
+    // wing split + wing outlines
     ctx.strokeStyle = '#5a3419';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(cx, cy - 30);
-    ctx.lineTo(cx, cy + 88);
+    ctx.moveTo(cx, cy - 24);
+    ctx.lineTo(cx, cy + 72);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(cx - 2, cy - 26);
-    ctx.quadraticCurveTo(cx - 48, cy + 22, cx - 22, cy + 82);
-    ctx.moveTo(cx + 2, cy - 26);
-    ctx.quadraticCurveTo(cx + 48, cy + 22, cx + 22, cy + 82);
+    ctx.moveTo(cx - 2, cy - 20);
+    ctx.quadraticCurveTo(cx - 40, cy + 18, cx - 18, cy + 66);
+    ctx.moveTo(cx + 2, cy - 20);
+    ctx.quadraticCurveTo(cx + 40, cy + 18, cx + 18, cy + 66);
     ctx.stroke();
 
-    // soft highlight on the shell
+    // soft shell highlight
     ctx.beginPath();
-    ctx.ellipse(cx - 20, cy - 2, 15, 28, -0.3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(168,112,64,0.55)';
+    ctx.ellipse(cx - 16, cy - 2, 12, 24, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(168,112,64,0.5)';
     ctx.fill();
 
-    // --- head ---
+    // --- head + small eyes (faithful to the in-game roach) ---
     ctx.beginPath();
-    ctx.ellipse(cx, cy - 78, 30, 27, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy - 68, 25, 23, 0, 0, Math.PI * 2);
     ctx.fillStyle = '#5a3419';
     ctx.fill();
     ctx.strokeStyle = '#2e1c10';
     ctx.lineWidth = 6;
     ctx.stroke();
-
-    // big cute eyes
-    for (const ex of [-12, 12]) {
+    for (const ex of [-9, 9]) {
       ctx.beginPath();
-      ctx.arc(cx + ex, cy - 82, 8.5, 0, Math.PI * 2);
+      ctx.arc(cx + ex, cy - 72, 5, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(cx + ex + 1.5, cy - 80, 4, 0, Math.PI * 2);
+      ctx.arc(cx + ex, cy - 71, 2.2, 0, Math.PI * 2);
       ctx.fillStyle = '#2e1c10';
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(cx + ex - 1.5, cy - 84, 1.6, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
     }
-    // tiny smile
-    ctx.strokeStyle = '#2e1c10';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(cx, cy - 69, 6, 0.2, Math.PI - 0.2);
-    ctx.stroke();
   });
 }
 
@@ -304,8 +293,10 @@ export function buildTextures(scene: Phaser.Scene): void {
   roachFrame(scene, 'roach_1', 0);
   roachFrame(scene, 'roach_2', 1);
 
-  // --- big, crisp hero roach for the title screen ---
-  buildMenuRoach(scene);
+  // --- big, crisp animated roach for the title screen ---
+  menuRoachFrame(scene, 'roach_m0', -1);
+  menuRoachFrame(scene, 'roach_m1', 0);
+  menuRoachFrame(scene, 'roach_m2', 1);
 
   // --- police ---
   copFrame(scene, 'cop_0', 'walk0');

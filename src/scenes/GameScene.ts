@@ -58,6 +58,14 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    // The device-frame header is compulsory during gameplay — make sure it's
+    // shown (the menu hides it) and resync the game area to the new size.
+    const hdr = document.getElementById('frameHeader');
+    if (hdr && hdr.style.display === 'none') {
+      hdr.style.display = '';
+      this.scale.refresh();
+    }
+
     // fresh run state (scene restarts reuse the instance)
     this.police = [];
     this.traffic = [];

@@ -14,8 +14,8 @@
   <title>Roach to Jantar Mantar</title>
   <style>
     :root {
-      /* keep this in sync with FONT in src/config.ts */
-      --game-font: "Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive;
+      /* clean, legible header type (kept in sync with CLEAR_FONT in config.ts) */
+      --ui-font: "Trebuchet MS", "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif;
     }
     html, body {
       margin: 0;
@@ -72,21 +72,22 @@
       z-index: 2;
     }
     .frame-header .title {
-      font-family: var(--game-font);
+      font-family: var(--ui-font);
       font-weight: 700;
       color: #8a2a1e;
-      font-size: clamp(15px, 3.2vh, 26px);
+      font-size: clamp(15px, 3.2vh, 25px);
       line-height: 1.05;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-      letter-spacing: 0.2px;
     }
     .frame-header .subtitle {
       display: inline-block;
       margin-top: 6px;
       padding: 2px 12px;
-      font-family: var(--game-font);
+      font-family: var(--ui-font);
       font-weight: 700;
-      font-size: clamp(9px, 1.5vh, 13px);
+      font-size: clamp(9px, 1.5vh, 12px);
       letter-spacing: 3px;
       text-transform: uppercase;
       color: #f4ecd8;
@@ -124,7 +125,7 @@
 <body>
   <div class="stage">
     <div class="frame">
-      <header class="frame-header">
+      <header class="frame-header" id="frameHeader">
         <div class="title">🪳 Roach to Jantar Mantar</div>
         <div class="subtitle">Gameplay</div>
       </header>
