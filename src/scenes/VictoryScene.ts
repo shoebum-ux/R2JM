@@ -12,13 +12,31 @@ export default class VictoryScene extends Phaser.Scene {
     super('Win');
   }
 
+  private fired = false;
+
   create(data: { elapsed: number }): void {
+    this.fired = false;
+    this.scale.refresh();
     const w = this.scale.width;
     const h = this.scale.height;
     const cx = w / 2;
     const cy = h * 0.46;
     const rank = recordWin(data.elapsed);
     const board = getBoard();
+
+    const go = (): void => {
+      if (this.fired) return;
+      this.fired = true;
+      Audio.stopPartyMusic();
+      Audio.stopAmbience();
+      this.scene.stop('UI');
+      this.scene.start('Game');
+    };
+
+    // Invisible tap-anywhere backdrop so play-again can't be swallowed
+    // (kept transparent so the party stays visible).
+    this.add.rectangle(0, 0, w, h, 0, 0).setOrigin(0).setDepth(698)
+      .setInteractive().on('pointerdown', go);
 
     const pw = Math.min(w * 0.88, 460);
     const ph = Math.min(h * 0.68, 620);
@@ -51,12 +69,6 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(701);
     });
 
-    const go = (): void => {
-      Audio.stopPartyMusic();
-      Audio.stopAmbience();
-      this.scene.stop('UI');
-      this.scene.start('Game');
-    };
     roundButton(this, cx, cy + ph * 0.4, 224, 58, 'PLAY AGAIN', BTN_GREEN, go);
 
     this.time.addEvent({
@@ -64,7 +76,6 @@ export default class VictoryScene extends Phaser.Scene {
       callback: () => confettiBurst(this, Math.random() * w, h * 0.1, 18)
     });
 
-    this.input.keyboard?.once('keydown-SPACE', go);
-    this.input.keyboard?.once('keydown-ENTER', go);
+    this.input.keyboard?.once('keydown', go);
   }
 }
