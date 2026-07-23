@@ -77,6 +77,9 @@ export const CAT = {
 
 export const FONT = '"Chalkboard SE", "Comic Sans MS", "Segoe Print", cursive';
 
+/** A crisp, highly legible font for menus and buttons (request: clear fonts). */
+export const CLEAR_FONT = '"Trebuchet MS", "Segoe UI", system-ui, -apple-system, Helvetica, Arial, sans-serif';
+
 export const GAME_OVER_LINES = [
   'You were detained.',
   'Wrong turn.',

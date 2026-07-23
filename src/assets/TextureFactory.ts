@@ -122,6 +122,112 @@ function roachFrame(scene: Phaser.Scene, key: string, legPhase: number): void {
   });
 }
 
+/**
+ * A big, crisp, cute hero cockroach for the title screen — drawn at high
+ * resolution with smooth curves so it never looks like an upscaled sprite.
+ * Faces up (antennae toward the top).
+ */
+function buildMenuRoach(scene: Phaser.Scene): void {
+  tex(scene, 'roach_hero', 240, 270, (ctx) => {
+    const cx = 120, cy = 150;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // --- legs (under the body) ---
+    ctx.strokeStyle = '#2e1c10';
+    ctx.lineWidth = 8;
+    const legDefs = [
+      { ay: -48, kx: 36, ky: -22, fx: 64, fy: -44 }, // front
+      { ay: -4, kx: 42, ky: -4, fx: 70, fy: 0 },     // middle
+      { ay: 42, kx: 38, ky: 22, fx: 64, fy: 50 }     // back
+    ];
+    for (let s = -1; s <= 1; s += 2) {
+      for (const L of legDefs) {
+        ctx.beginPath();
+        ctx.moveTo(cx + s * 22, cy + L.ay);
+        ctx.quadraticCurveTo(cx + s * L.kx, cy + L.ky, cx + s * L.fx, cy + L.fy);
+        ctx.stroke();
+      }
+    }
+
+    // --- antennae ---
+    ctx.lineWidth = 8;
+    for (let s = -1; s <= 1; s += 2) {
+      ctx.beginPath();
+      ctx.moveTo(cx + s * 8, cy - 92);
+      ctx.quadraticCurveTo(cx + s * 44, cy - 158, cx + s * 70, cy - 138);
+      ctx.stroke();
+    }
+
+    // --- abdomen ---
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 20, 52, 76, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#7a4c28';
+    ctx.fill();
+    ctx.strokeStyle = '#2e1c10';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // pronotum (shield behind the head)
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 44, 36, 32, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#6a4020';
+    ctx.fill();
+    ctx.stroke();
+
+    // wing split + wing outlines + a couple of segment hints
+    ctx.strokeStyle = '#5a3419';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 30);
+    ctx.lineTo(cx, cy + 88);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 2, cy - 26);
+    ctx.quadraticCurveTo(cx - 48, cy + 22, cx - 22, cy + 82);
+    ctx.moveTo(cx + 2, cy - 26);
+    ctx.quadraticCurveTo(cx + 48, cy + 22, cx + 22, cy + 82);
+    ctx.stroke();
+
+    // soft highlight on the shell
+    ctx.beginPath();
+    ctx.ellipse(cx - 20, cy - 2, 15, 28, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(168,112,64,0.55)';
+    ctx.fill();
+
+    // --- head ---
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 78, 30, 27, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#5a3419';
+    ctx.fill();
+    ctx.strokeStyle = '#2e1c10';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // big cute eyes
+    for (const ex of [-12, 12]) {
+      ctx.beginPath();
+      ctx.arc(cx + ex, cy - 82, 8.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx + ex + 1.5, cy - 80, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#2e1c10';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx + ex - 1.5, cy - 84, 1.6, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+    // tiny smile
+    ctx.strokeStyle = '#2e1c10';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 69, 6, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+  });
+}
+
 // ------------------------------------------------------------------ police
 
 /** Top-down police constable. pose: walk0 | walk1 | windup | dash */
@@ -197,6 +303,9 @@ export function buildTextures(scene: Phaser.Scene): void {
   roachFrame(scene, 'roach_0', -1);
   roachFrame(scene, 'roach_1', 0);
   roachFrame(scene, 'roach_2', 1);
+
+  // --- big, crisp hero roach for the title screen ---
+  buildMenuRoach(scene);
 
   // --- police ---
   copFrame(scene, 'cop_0', 'walk0');
