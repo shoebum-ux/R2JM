@@ -78,7 +78,8 @@ export default class GameScene extends Phaser.Scene {
     Audio.stopPartyMusic();
 
     this.matter.world.setGravity(0, 0);
-    this.cameras.main.setBackgroundColor('#e6dcc3');
+    // Base ground layer: green everywhere (lawns sit on top as lighter patches).
+    this.cameras.main.setBackgroundColor('#a6c47c');
     this.cameras.main.setBounds(0, 0, WORLD.w, WORLD.h);
 
     this.drawGround();
