@@ -10,6 +10,7 @@ import { FONT, CLEAR_FONT } from '../config';
 import { VirtualJoystick } from '../ui/VirtualJoystick';
 import { Audio } from '../audio/AudioManager';
 import { fmtTime } from '../systems/Save';
+import { pixelToggle, PX_BLUE, PX_GREY } from '../ui/Widgets';
 
 // Circular GTA-style radar, centred on the roach.
 const RADAR_R = 56;         // radius in pixels
@@ -35,8 +36,7 @@ export default class UIScene extends Phaser.Scene {
   private gasOverlay!: Phaser.GameObjects.Rectangle;
   private pauseOverlay!: Phaser.GameObjects.Container;
   private compass!: Phaser.GameObjects.Text;
-  private btns: { img: Phaser.GameObjects.Image; txt: Phaser.GameObjects.Text }[] = [];
-  private muteTxt!: Phaser.GameObjects.Text;
+  private musicToggle!: { container: Phaser.GameObjects.Container; refresh: (on: boolean) => void };
 
   constructor() {
     super('UI');
@@ -45,7 +45,6 @@ export default class UIScene extends Phaser.Scene {
   create(): void {
     this.game_ = this.scene.get('Game') as GameScene;
     this.joyVec.set(0, 0);
-    this.btns = [];
 
     this.gasOverlay = this.add.rectangle(0, 0, 10, 10, 0xa8b478, 0).setOrigin(0).setDepth(500);
 
@@ -83,9 +82,9 @@ export default class UIScene extends Phaser.Scene {
       this.joy = new VirtualJoystick(this);
     }
 
-    // keyboard shortcuts
+    // keyboard shortcuts (buttons removed from the HUD except music)
     this.input.keyboard?.on('keydown-P', () => this.togglePause());
-    this.input.keyboard?.on('keydown-M', () => this.toggleMute());
+    this.input.keyboard?.on('keydown-M', () => this.toggleMusic());
     this.input.keyboard?.on('keydown-R', () => this.restartRun());
 
     this.layout();
@@ -98,37 +97,32 @@ export default class UIScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- buttons
 
+  /** Only a music on/off toggle remains on the HUD (bottom-right). */
   private makeButtons(): void {
-    const mk = (emoji: string, cb: () => void): { img: Phaser.GameObjects.Image; txt: Phaser.GameObjects.Text } => {
-      const img = this.add.image(0, 0, 'btn').setDepth(600).setInteractive({ useHandCursor: true });
-      const txt = this.add.text(0, 0, emoji, { fontSize: '22px' }).setOrigin(0.5).setDepth(601);
-      img.on('pointerdown', (p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
-        e.stopPropagation();
-        cb();
-      });
-      const b = { img, txt };
-      this.btns.push(b);
-      return b;
-    };
-    mk('⏸️', () => this.togglePause());
-    this.muteTxt = mk(Audio.muted ? '🔇' : '🔊', () => this.toggleMute()).txt;
-    mk('🔁', () => this.restartRun());
+    this.musicToggle = pixelToggle(
+      this, 0, 0, 46, !Audio.musicMuted,
+      (on) => (on ? { emoji: '🎵', pal: PX_BLUE } : { emoji: '🔇', pal: PX_GREY }),
+      () => this.toggleMusic()
+    );
   }
 
-  private toggleMute(): void {
-    const muted = Audio.toggleMute();
-    this.muteTxt.setText(muted ? '🔇' : '🔊');
+  private toggleMusic(): void {
+    const muted = Audio.toggleMusic();
+    this.musicToggle.refresh(!muted);
   }
 
   private togglePause(): void {
     if (this.game_.over) return;
+    const parts = this.pauseOverlay.getData('parts') as { dim: Phaser.GameObjects.Rectangle };
     if (this.scene.isPaused('Game')) {
       this.scene.resume('Game');
       this.pauseOverlay.setVisible(false);
+      parts.dim.disableInteractive();
       Audio.startGameMusic();
     } else {
       this.scene.pause('Game');
       this.pauseOverlay.setVisible(true);
+      parts.dim.setInteractive();
       Audio.stopGameMusic();
     }
   }
@@ -146,8 +140,9 @@ export default class UIScene extends Phaser.Scene {
 
   private makePauseOverlay(): void {
     const dim = this.add.rectangle(0, 0, 10, 10, 0x1c1a17, 0.6).setOrigin(0);
+    dim.on('pointerdown', () => this.togglePause()); // tap overlay to resume
     const panel = this.add.graphics();
-    const label = this.add.text(0, 0, '⏸  PAUSED\n\nthe roach waits…\ntap ⏸ or press P to resume', {
+    const label = this.add.text(0, 0, '⏸  PAUSED\n\nthe roach waits…\ntap anywhere or press P to resume', {
       fontFamily: CLEAR_FONT, fontSize: '22px', color: '#5a4326', align: 'center', fontStyle: 'bold'
     }).setOrigin(0.5);
     this.pauseOverlay = this.add.container(0, 0, [dim, panel, label]).setDepth(700).setVisible(false);
@@ -167,13 +162,8 @@ export default class UIScene extends Phaser.Scene {
     this.distLabel.setPosition(w - 14, 12);
     this.timeLabel.setPosition(w - 14, 38);
 
-    // buttons bottom-right (inset to clear the frame's rounded corner)
-    this.btns.forEach((b, i) => {
-      const x = w - 40 - i * 58;
-      const y = h - 44;
-      b.img.setPosition(x, y);
-      b.txt.setPosition(x, y);
-    });
+    // music toggle bottom-right (inset to clear the frame's rounded corner)
+    this.musicToggle.container.setPosition(w - 40, h - 44);
 
     const parts = this.pauseOverlay.getData('parts') as {
       dim: Phaser.GameObjects.Rectangle; panel: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text;

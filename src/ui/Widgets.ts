@@ -3,6 +3,88 @@
 import Phaser from 'phaser';
 import { CLEAR_FONT } from '../config';
 
+const PIXEL_FONT = '"Arial Black", "Impact", ' + CLEAR_FONT;
+
+export interface PixelPalette { face: number; hi: number; lo: number; edge: number; }
+export const PX_GREEN: PixelPalette = { face: 0x7cbf3f, hi: 0x9fd85f, lo: 0x4f8a24, edge: 0x2b3d16 };
+export const PX_BLUE: PixelPalette = { face: 0x3f8fd0, hi: 0x62b0e8, lo: 0x25628f, edge: 0x16283d };
+export const PX_GREY: PixelPalette = { face: 0x6b6b6b, hi: 0x8a8a8a, lo: 0x454545, edge: 0x232323 };
+
+/** Draw a chunky pixel-art button body (blocky bevel) into a graphics object. */
+function pixelBody(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, p: PixelPalette): void {
+  const b = 4; // pixel border thickness
+  g.fillStyle(p.edge, 1);
+  g.fillRect(x, y, w, h);                                  // dark outline
+  g.fillStyle(p.lo, 1);
+  g.fillRect(x + b, y + b, w - b * 2, h - b * 2);          // shadow base
+  g.fillStyle(p.face, 1);
+  g.fillRect(x + b, y + b, w - b * 2, h - b * 3);          // face
+  g.fillStyle(p.hi, 1);
+  g.fillRect(x + b, y + b, w - b * 2, b);                  // top highlight
+  g.fillStyle(p.edge, 0.35);
+  g.fillRect(x + b, y + h - b * 2, w - b * 2, b);          // inner shade line
+}
+
+/**
+ * A chunky pixel-art button with a label and optional trailing emoji icon.
+ * `w`/`h` are the full button size; positioned by centre (x, y).
+ */
+export function pixelButton(
+  scene: Phaser.Scene, x: number, y: number, w: number, h: number,
+  label: string, icon: string, pal: PixelPalette, onClick: () => void, depth = 9
+): Phaser.GameObjects.Container {
+  const g = scene.add.graphics();
+  pixelBody(g, -w / 2, -h / 2, w, h, pal);
+
+  const txt = scene.add.text(icon ? -8 : 0, -2, label, {
+    fontFamily: PIXEL_FONT, fontSize: `${Math.floor(h * 0.42)}px`, color: '#f7f3e8', fontStyle: 'bold'
+  }).setOrigin(0.5);
+  txt.setShadow(2, 2, 'rgba(0,0,0,0.45)', 0);
+  const parts: Phaser.GameObjects.GameObject[] = [g, txt];
+  if (icon) {
+    const ic = scene.add.text(w / 2 - 26, -1, icon, { fontSize: `${Math.floor(h * 0.5)}px` }).setOrigin(0.5);
+    parts.push(ic);
+  }
+
+  const btn = scene.add.container(x, y, parts).setDepth(depth).setSize(w, h);
+  btn.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains);
+  if (btn.input) btn.input.cursor = 'pointer';
+  scene.tweens.add({ targets: btn, scale: 1.03, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  btn.on('pointerover', () => btn.setY(y - 2));
+  btn.on('pointerout', () => btn.setY(y));
+  btn.on('pointerdown', () => btn.setY(y + 3));
+  btn.on('pointerup', () => { btn.setY(y); onClick(); });
+  return btn;
+}
+
+/**
+ * A small square pixel icon button whose look/emoji reflects a boolean state.
+ * `render(on)` returns the emoji + palette to draw. Returns a toggle() helper.
+ */
+export function pixelToggle(
+  scene: Phaser.Scene, x: number, y: number, size: number,
+  initialOn: boolean, render: (on: boolean) => { emoji: string; pal: PixelPalette }, onClick: () => void, depth = 601
+): { container: Phaser.GameObjects.Container; refresh: (on: boolean) => void } {
+  const g = scene.add.graphics();
+  const label = scene.add.text(0, -1, '', { fontSize: `${Math.floor(size * 0.5)}px` }).setOrigin(0.5);
+  const draw = (on: boolean): void => {
+    const { emoji, pal } = render(on);
+    g.clear();
+    pixelBody(g, -size / 2, -size / 2, size, size, pal);
+    label.setText(emoji);
+  };
+  draw(initialOn);
+
+  const btn = scene.add.container(x, y, [g, label]).setDepth(depth).setSize(size, size);
+  btn.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
+  if (btn.input) btn.input.cursor = 'pointer';
+  btn.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return { container: btn, refresh: draw };
+}
+
 /** A cream rounded dialog panel centred on (cx, cy). */
 export function dialogPanel(
   scene: Phaser.Scene, cx: number, cy: number, w: number, h: number, depth = 700

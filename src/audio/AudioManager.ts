@@ -4,17 +4,20 @@
  * little oscillator sketches, which keeps the whole game one small bundle.
  */
 
-import { getMuted, setMuted } from '../systems/Save';
+import { getMuted, setMuted, getMusicMuted, setMusicMuted } from '../systems/Save';
 
 class AudioManagerImpl {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Music + ambience route through here so they can mute without SFX. */
+  private musicGain: GainNode | null = null;
   private ambGain: GainNode | null = null;
   private ambNoise: AudioBufferSourceNode | null = null;
   private musicTimer: number | null = null;
   private gameMusicTimer: number | null = null;
   private stepAt = 0;
   muted = getMuted();
+  musicMuted = getMusicMuted();
 
   /** Must be called from a user gesture (menu tap) to unlock audio. */
   unlock(): void {
@@ -26,8 +29,12 @@ class AudioManagerImpl {
     if (!AC) return;
     this.ctx = new AC();
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : 0.55;
+    // No global mute button anymore — master always on; only music can mute.
+    this.master.gain.value = 0.55;
     this.master.connect(this.ctx.destination);
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = this.musicMuted ? 0 : 1;
+    this.musicGain.connect(this.master);
   }
 
   toggleMute(): boolean {
@@ -39,9 +46,20 @@ class AudioManagerImpl {
     return this.muted;
   }
 
+  /** Toggle background music only — sound effects stay on. */
+  toggleMusic(): boolean {
+    this.musicMuted = !this.musicMuted;
+    setMusicMuted(this.musicMuted);
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.setTargetAtTime(this.musicMuted ? 0 : 1, this.ctx.currentTime, 0.05);
+    }
+    return this.musicMuted;
+  }
+
   // ------------------------------------------------------------- primitives
 
-  private beep(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.3, slideTo?: number, when = 0): void {
+  /** `dest` lets music route through musicGain; SFX default to master. */
+  private beep(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.3, slideTo?: number, when = 0, dest?: AudioNode): void {
     if (!this.ctx || !this.master) return;
     const t = this.ctx.currentTime + when;
     const o = this.ctx.createOscillator();
@@ -52,12 +70,12 @@ class AudioManagerImpl {
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol, t + 0.012);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(this.master);
+    o.connect(g).connect(dest ?? this.master);
     o.start(t);
     o.stop(t + dur + 0.05);
   }
 
-  private noise(dur: number, vol = 0.25, filterFreq = 1200, when = 0): void {
+  private noise(dur: number, vol = 0.25, filterFreq = 1200, when = 0, dest?: AudioNode): void {
     if (!this.ctx || !this.master) return;
     const t = this.ctx.currentTime + when;
     const len = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
@@ -72,8 +90,12 @@ class AudioManagerImpl {
     const g = this.ctx.createGain();
     g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(f).connect(g).connect(this.master);
+    src.connect(f).connect(g).connect(dest ?? this.master);
     src.start(t);
+  }
+
+  private mdest(): AudioNode | undefined {
+    return this.musicGain ?? undefined;
   }
 
   // ----------------------------------------------------------------- events
@@ -155,7 +177,7 @@ class AudioManagerImpl {
       f.Q.value = 0.6;
       this.ambGain = this.ctx.createGain();
       this.ambGain.gain.value = 0;
-      src.connect(f).connect(this.ambGain).connect(this.master);
+      src.connect(f).connect(this.ambGain).connect(this.musicGain ?? this.master);
       src.start();
       this.ambNoise = src;
     }
@@ -191,14 +213,15 @@ class AudioManagerImpl {
     ];
     let i = 0;
     const stepMs = 150;
+    const md = this.mdest();
     this.gameMusicTimer = window.setInterval(() => {
       const n = lead[i % lead.length];
-      if (n) this.beep(n, 0.13, 'square', 0.06);
+      if (n) this.beep(n, 0.13, 'square', 0.06, undefined, 0, md);
       const b = bass[i % bass.length];
-      if (b) this.beep(b, 0.16, 'triangle', 0.12);
-      if (i % 4 === 0) this.noise(0.09, 0.13, 200);   // kick
-      if (i % 4 === 2) this.noise(0.05, 0.07, 6500);  // snare-ish
-      if (i % 2 === 1) this.noise(0.02, 0.04, 8000);  // hat
+      if (b) this.beep(b, 0.16, 'triangle', 0.12, undefined, 0, md);
+      if (i % 4 === 0) this.noise(0.09, 0.13, 200, 0, md);   // kick
+      if (i % 4 === 2) this.noise(0.05, 0.07, 6500, 0, md);  // snare-ish
+      if (i % 2 === 1) this.noise(0.02, 0.04, 8000, 0, md);  // hat
       i++;
     }, stepMs);
   }
@@ -218,14 +241,15 @@ class AudioManagerImpl {
     const bass = [147, 147, 0, 147, 175, 0, 147, 0];
     let i = 0;
     const stepMs = 140;
+    const md = this.mdest();
     this.musicTimer = window.setInterval(() => {
       const n = riff[i % riff.length];
-      if (n) this.beep(n, 0.12, 'square', 0.09);
+      if (n) this.beep(n, 0.12, 'square', 0.09, undefined, 0, md);
       const b = bass[i % bass.length];
-      if (b) this.beep(b, 0.14, 'triangle', 0.16);
-      if (i % 2 === 0) this.noise(0.03, 0.09, 6000);       // hat
-      if (i % 8 === 0) this.noise(0.1, 0.2, 200);          // dhol-ish thump
-      if (i % 8 === 4) this.beep(90, 0.1, 'sine', 0.22, 60); // dha
+      if (b) this.beep(b, 0.14, 'triangle', 0.16, undefined, 0, md);
+      if (i % 2 === 0) this.noise(0.03, 0.09, 6000, 0, md);       // hat
+      if (i % 8 === 0) this.noise(0.1, 0.2, 200, 0, md);          // dhol-ish thump
+      if (i % 8 === 4) this.beep(90, 0.1, 'sine', 0.22, 60, 0, md); // dha
       i++;
     }, stepMs);
   }
@@ -238,9 +262,10 @@ class AudioManagerImpl {
   }
 
   victoryFanfare(): void {
+    const md = this.mdest();
     const notes = [392, 523, 659, 784];
-    notes.forEach((n, i) => this.beep(n, 0.35, 'triangle', 0.25, undefined, i * 0.14));
-    this.beep(1046, 0.7, 'triangle', 0.25, undefined, notes.length * 0.14);
+    notes.forEach((n, i) => this.beep(n, 0.35, 'triangle', 0.25, undefined, i * 0.14, md));
+    this.beep(1046, 0.7, 'triangle', 0.25, undefined, notes.length * 0.14, md);
   }
 }
 

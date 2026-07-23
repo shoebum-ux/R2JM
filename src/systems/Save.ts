@@ -49,6 +49,14 @@ export function setMuted(m: boolean): void {
   write(SAVE_KEYS.muted, m);
 }
 
+export function getMusicMuted(): boolean {
+  return read<boolean>(SAVE_KEYS.musicMuted, false);
+}
+
+export function setMusicMuted(m: boolean): void {
+  write(SAVE_KEYS.musicMuted, m);
+}
+
 export function fmtTime(ms: number): string {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);

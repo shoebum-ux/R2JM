@@ -95,5 +95,6 @@ export const GAME_OVER_LINES = [
 
 export const SAVE_KEYS = {
   board: 'r2jm_board',
-  muted: 'r2jm_muted'
+  muted: 'r2jm_muted',
+  musicMuted: 'r2jm_music_muted'
 };
