@@ -36,7 +36,10 @@ whenParentSized(() => {
     },
     render: {
       antialias: true,
-      roundPixels: false
+      roundPixels: false,
+      // Keep the WebGL backbuffer so screen-recording / capture (and some
+      // browser compositors) show the render instead of a black frame.
+      preserveDrawingBuffer: true
     },
     physics: {
       default: 'matter',
