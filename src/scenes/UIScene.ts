@@ -32,6 +32,8 @@ export default class UIScene extends Phaser.Scene {
   private muteTxt!: Phaser.GameObjects.Text;
   private mapAt = 0;
   private mapScale = MAP_W / WORLD.w;
+  // Horizontal window left edge so the Connaught Place ring is centred.
+  private mapViewX0 = RING.cx - WORLD.w / 2;
 
   constructor() {
     super('UI');
@@ -187,18 +189,28 @@ export default class UIScene extends Phaser.Scene {
     return { x: 16, y: h - WORLD.h * this.mapScale - 18 };
   }
 
+  /** Map world x → minimap pixel x (centred window, clamped to the box). */
+  private mx(ox: number, wx: number): number {
+    return ox + Phaser.Math.Clamp((wx - this.mapViewX0) * this.mapScale, 0, MAP_W);
+  }
+
+  /** Map world y → minimap pixel y (clamped to the box). */
+  private my(oy: number, wy: number): number {
+    return oy + Phaser.Math.Clamp(wy * this.mapScale, 0, WORLD.h * this.mapScale);
+  }
+
   private drawMapBase(h: number): void {
     const o = this.mapOrigin(h);
     const s = this.mapScale;
     const g = this.mapBg;
     g.clear();
     g.fillStyle(0x1c1a17, 0.55);
-    g.fillRoundedRect(o.x - 4, o.y - 4, WORLD.w * s + 8, WORLD.h * s + 8, 6);
+    g.fillRoundedRect(o.x - 4, o.y - 4, MAP_W + 8, WORLD.h * s + 8, 6);
     g.lineStyle(2, 0xe8e0c8, 0.5);
     for (const r of ROADS) {
-      g.lineBetween(o.x + r.x1 * s, o.y + r.y1 * s, o.x + r.x2 * s, o.y + r.y2 * s);
+      g.lineBetween(this.mx(o.x, r.x1), this.my(o.y, r.y1), this.mx(o.x, r.x2), this.my(o.y, r.y2));
     }
-    g.strokeCircle(o.x + RING.cx * s, o.y + RING.cy * s, RING.r * s);
+    g.strokeCircle(this.mx(o.x, RING.cx), this.my(o.y, RING.cy), RING.r * s);
   }
 
   private drawMapDots(now: number): void {
@@ -210,20 +222,20 @@ export default class UIScene extends Phaser.Scene {
     g.clear();
     // goal
     g.fillStyle(0x6fd06f, 1);
-    g.fillCircle(o.x + GOAL.x * s, o.y + GOAL.y * s, 4);
+    g.fillCircle(this.mx(o.x, GOAL.x), this.my(o.y, GOAL.y), 4);
     // police
     g.fillStyle(0xff5a4a, 1);
     for (const cop of this.game_.police) {
-      g.fillCircle(o.x + cop.x * s, o.y + cop.y * s, 1.8);
+      g.fillCircle(this.mx(o.x, cop.x), this.my(o.y, cop.y), 1.8);
     }
     // detention bus
     if (this.game_.bus) {
       g.fillStyle(0xffa040, 1);
-      g.fillCircle(o.x + this.game_.bus.sprite.x * s, o.y + this.game_.bus.sprite.y * s, 3);
+      g.fillCircle(this.mx(o.x, this.game_.bus.sprite.x), this.my(o.y, this.game_.bus.sprite.y), 3);
     }
     // the roach
     g.fillStyle(0xffffff, 1);
-    g.fillCircle(o.x + this.game_.player.x * s, o.y + this.game_.player.y * s, 2.6);
+    g.fillCircle(this.mx(o.x, this.game_.player.x), this.my(o.y, this.game_.player.y), 2.6);
   }
 
   // ------------------------------------------------------------------- loop
