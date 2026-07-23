@@ -16,6 +16,8 @@ export default class MenuScene extends Phaser.Scene {
   private playBtn?: Phaser.GameObjects.Container;
   private musicToggle?: { container: Phaser.GameObjects.Container; refresh: (on: boolean) => void };
   private hasPoster = false;
+  private lastW = 0;
+  private lastH = 0;
 
   constructor() {
     super('Menu');
@@ -42,8 +44,10 @@ export default class MenuScene extends Phaser.Scene {
     };
 
     if (this.hasPoster) {
+      // sky blue fills any gap above the poster (matches the poster's sky)
+      this.cameras.main.setBackgroundColor('#5aa9dc');
       this.poster = this.add.image(cx, h / 2, 'menu_bg').setDepth(0);
-      this.playBtn = pixelButton(this, cx, h * 0.5, 230, 62, 'PLAY', '🪳', PX_GREEN, go);
+      this.playBtn = pixelButton(this, cx, h * 0.6, 230, 62, 'PLAY', '🪳', PX_GREEN, go);
     } else {
       this.playBtn = this.drawFallbackMenu(w, h, cx, isTouch, go);
     }
@@ -68,14 +72,27 @@ export default class MenuScene extends Phaser.Scene {
     this.input.keyboard?.once('keydown-ENTER', go);
   }
 
-  /** Cover the poster to the full frame and place PLAY (centre) + music button. */
+  /** Re-layout whenever the frame size changes (robust against late resizes). */
+  update(): void {
+    if (this.scale.width !== this.lastW || this.scale.height !== this.lastH) {
+      this.lastW = this.scale.width;
+      this.lastH = this.scale.height;
+      this.layoutMenu(this.lastW, this.lastH);
+    }
+  }
+
+  /** Cover the poster to the full frame and place PLAY + music button. */
   private layoutMenu(w: number, h: number): void {
     const cx = w / 2;
     if (this.poster) {
+      // Scale to fill the width, anchor to the bottom (so all the bottom
+      // content shows). Any leftover space at the top is sky-blue background.
       const src = this.textures.get('menu_bg').getSourceImage();
-      const scale = Math.max(w / src.width, h / src.height);
-      this.poster.setPosition(cx, h / 2).setScale(scale);
-      this.playBtn?.setPosition(cx, h * 0.5);
+      const scale = w / src.width;
+      const dispH = src.height * scale;
+      this.poster.setScale(scale).setPosition(cx, h - dispH / 2);
+      const posterTop = h - dispH;
+      this.playBtn?.setPosition(cx, posterTop + dispH * 0.62);
     } else {
       this.playBtn?.setPosition(cx, h * 0.68);
     }
