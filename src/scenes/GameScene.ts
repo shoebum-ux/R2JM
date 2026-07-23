@@ -113,7 +113,7 @@ export default class GameScene extends Phaser.Scene {
     this.scene.launch('UI');
 
     // intro banner
-    const intro = this.add.text(this.player.x, this.player.y - 70, '🏛️ REACH JANTAR MANTAR!\nthe only safe place in the city', {
+    const intro = this.add.text(this.player.x, this.player.y - 70, '🏛️ REACH JANTAR MANTAR\nhome of the cockroaches', {
       fontFamily: FONT, fontSize: '17px', color: '#2e1c10', align: 'center',
       backgroundColor: '#fffcf2', padding: { x: 10, y: 6 }
     }).setOrigin(0.5).setDepth(950);

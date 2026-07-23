@@ -7,26 +7,26 @@ import Phaser from 'phaser';
 import { FONT } from '../config';
 
 const DOG_LINES = ['bhow?', 'bhow bhow', '*sniff sniff*', '...roach?', '*ignores you*'];
-const CART_LINES = ['Samose garam!', 'Chai chai chaaai', 'Bhaiya ek plate', 'Scene kya hai?', 'Aaj band hai kya?'];
+const CART_LINES = ['Samose garam!', 'Chai chai chaaai', 'Bhaiya ek plate', 'Scene kya hai?', 'Aaj band hai kya?', 'melody?'];
 const PIGEON_LINES = ['gutur goo', 'gutergang gutergang'];
 
 export function speechBubble(scene: Phaser.Scene, x: number, y: number, text: string): void {
   const label = scene.add.text(0, 0, text, {
     fontFamily: FONT,
-    fontSize: '13px',
+    fontSize: '20px',
     color: '#2e1c10'
   }).setOrigin(0.5);
-  const w = label.width + 16;
-  const h = label.height + 10;
+  const w = label.width + 24;
+  const h = label.height + 16;
   const bg = scene.add.graphics();
-  bg.fillStyle(0xfffcf2, 0.95);
-  bg.lineStyle(2, 0x4a3f33, 1);
-  bg.fillRoundedRect(-w / 2, -h / 2, w, h, 7);
-  bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 7);
-  bg.fillTriangle(-5, h / 2 - 1, 5, h / 2 - 1, 0, h / 2 + 8);
-  const c = scene.add.container(x, y - 30, [bg, label]).setDepth(940).setAlpha(0);
-  scene.tweens.add({ targets: c, alpha: 1, y: y - 38, duration: 200 });
-  scene.time.delayedCall(2200, () => {
+  bg.fillStyle(0xfffcf2, 0.96);
+  bg.lineStyle(2.5, 0x4a3f33, 1);
+  bg.fillRoundedRect(-w / 2, -h / 2, w, h, 9);
+  bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 9);
+  bg.fillTriangle(-7, h / 2 - 1, 7, h / 2 - 1, 0, h / 2 + 11);
+  const c = scene.add.container(x, y - 34, [bg, label]).setDepth(940).setAlpha(0);
+  scene.tweens.add({ targets: c, alpha: 1, y: y - 46, duration: 200 });
+  scene.time.delayedCall(2400, () => {
     scene.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() });
   });
 }
