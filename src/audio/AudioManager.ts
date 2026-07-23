@@ -12,6 +12,7 @@ class AudioManagerImpl {
   private ambGain: GainNode | null = null;
   private ambNoise: AudioBufferSourceNode | null = null;
   private musicTimer: number | null = null;
+  private gameMusicTimer: number | null = null;
   private stepAt = 0;
   muted = getMuted();
 
@@ -166,6 +167,48 @@ class AudioManagerImpl {
   }
 
   // ----------------------------------------------------------------- music
+
+  /**
+   * Gameplay background loop: an original 8-bit chiptune in A-minor — a driving,
+   * slightly tense "sneaking through the city" groove. Fully synthesized, so
+   * it's royalty-free and ships with zero audio files. Kept quiet so footsteps,
+   * whistles and horns still cut through.
+   */
+  startGameMusic(): void {
+    if (this.gameMusicTimer !== null || !this.ctx) return;
+    // two-bar lead (A natural minor) + walking bass, 32 steps
+    const lead = [
+      440, 0, 523, 494, 440, 0, 392, 440,
+      330, 0, 392, 440, 494, 0, 440, 392,
+      440, 0, 523, 587, 523, 0, 494, 440,
+      392, 0, 330, 392, 294, 0, 330, 0
+    ];
+    const bass = [
+      110, 0, 110, 110, 87, 0, 87, 87,
+      98, 0, 98, 98, 82, 0, 82, 0,
+      110, 0, 110, 110, 87, 0, 87, 87,
+      98, 0, 98, 98, 110, 0, 110, 0
+    ];
+    let i = 0;
+    const stepMs = 150;
+    this.gameMusicTimer = window.setInterval(() => {
+      const n = lead[i % lead.length];
+      if (n) this.beep(n, 0.13, 'square', 0.06);
+      const b = bass[i % bass.length];
+      if (b) this.beep(b, 0.16, 'triangle', 0.12);
+      if (i % 4 === 0) this.noise(0.09, 0.13, 200);   // kick
+      if (i % 4 === 2) this.noise(0.05, 0.07, 6500);  // snare-ish
+      if (i % 2 === 1) this.noise(0.02, 0.04, 8000);  // hat
+      i++;
+    }, stepMs);
+  }
+
+  stopGameMusic(): void {
+    if (this.gameMusicTimer !== null) {
+      clearInterval(this.gameMusicTimer);
+      this.gameMusicTimer = null;
+    }
+  }
 
   /** Party loop: a scrappy little chiptune bhangra-ish groove. */
   startPartyMusic(): void {

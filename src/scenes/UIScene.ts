@@ -112,14 +112,17 @@ export default class UIScene extends Phaser.Scene {
     if (this.scene.isPaused('Game')) {
       this.scene.resume('Game');
       this.pauseOverlay.setVisible(false);
+      Audio.startGameMusic();
     } else {
       this.scene.pause('Game');
       this.pauseOverlay.setVisible(true);
+      Audio.stopGameMusic();
     }
   }
 
   restartRun(): void {
     Audio.stopPartyMusic();
+    Audio.stopGameMusic();
     Audio.stopAmbience();
     this.scene.stop('Over');
     this.scene.stop('Win');

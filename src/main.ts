@@ -7,6 +7,7 @@ import GameScene from './scenes/GameScene';
 import UIScene from './scenes/UIScene';
 import GameOverScene from './scenes/GameOverScene';
 import VictoryScene from './scenes/VictoryScene';
+import { Audio } from './audio/AudioManager';
 
 /**
  * Construct the game only once the parent element has a real layout size.
@@ -49,6 +50,7 @@ whenParentSized(() => {
 
   // handy for debugging from the console
   (window as unknown as { game: Phaser.Game }).game = game;
+  (window as unknown as { audio: typeof Audio }).audio = Audio;
 
   // The RESIZE scale manager can measure the parent before layout settles —
   // nudge it once the page is fully laid out.

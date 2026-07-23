@@ -76,6 +76,7 @@ export default class GameScene extends Phaser.Scene {
     this.shieldEpisodeUntil = 0;
     this.reinforced = DIFFICULTY.extraPatrolThresholds.map(() => false);
     Audio.stopPartyMusic();
+    Audio.startGameMusic();
 
     this.matter.world.setGravity(0, 0);
     // Base ground layer: green everywhere (lawns sit on top as lighter patches).
@@ -114,8 +115,8 @@ export default class GameScene extends Phaser.Scene {
   private applyZoom(): void {
     // Portrait (Instagram-Reel) viewport: base the zoom on the narrow width so
     // the roach and threats stay readable while a good stretch of road ahead
-    // fits vertically.
-    const z = Phaser.Math.Clamp(this.scale.width / 560, 0.62, 1.15);
+    // fits vertically. Zoomed out a touch so more of the map is visible.
+    const z = Phaser.Math.Clamp(this.scale.width / 740, 0.5, 0.95);
     this.cameras.main.setZoom(z);
   }
 
@@ -476,6 +477,7 @@ export default class GameScene extends Phaser.Scene {
   gameOver(cause: DeathCause): void {
     if (this.over) return;
     this.over = true;
+    Audio.stopGameMusic();
     this.player.kill();
     this.cameras.main.shake(250, 0.008);
 
@@ -524,6 +526,7 @@ export default class GameScene extends Phaser.Scene {
   private win(): void {
     this.won = true;
     this.over = true;
+    Audio.stopGameMusic();
     Audio.victoryFanfare();
     Audio.stopAmbience();
     Audio.startPartyMusic();
