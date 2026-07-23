@@ -12,6 +12,11 @@ import { confettiBurst } from '../particles/Effects';
 import { pixelButton, pixelToggle, PX_GREEN, PX_BLUE, PX_GREY } from '../ui/Widgets';
 
 export default class MenuScene extends Phaser.Scene {
+  private poster?: Phaser.GameObjects.Image;
+  private playBtn?: Phaser.GameObjects.Container;
+  private musicToggle?: { container: Phaser.GameObjects.Container; refresh: (on: boolean) => void };
+  private hasPoster = false;
+
   constructor() {
     super('Menu');
   }
@@ -27,7 +32,7 @@ export default class MenuScene extends Phaser.Scene {
     const { width: w, height: h } = this.scale;
     const cx = w / 2;
     const isTouch = 'ontouchstart' in window;
-    const hasPoster = this.textures.exists('menu_bg');
+    this.hasPoster = this.textures.exists('menu_bg');
 
     const go = (): void => {
       Audio.unlock();
@@ -36,32 +41,50 @@ export default class MenuScene extends Phaser.Scene {
       this.time.delayedCall(180, () => this.scene.start('Game'));
     };
 
-    if (hasPoster) {
-      // full poster background, scaled to cover the frame
-      const src = this.textures.get('menu_bg').getSourceImage();
-      const scale = Math.max(w / src.width, h / src.height);
-      this.add.image(cx, h / 2, 'menu_bg').setDepth(0).setScale(scale);
-      pixelButton(this, cx, h * 0.86, 230, 62, 'PLAY', '🪳', PX_GREEN, go);
+    if (this.hasPoster) {
+      this.poster = this.add.image(cx, h / 2, 'menu_bg').setDepth(0);
+      this.playBtn = pixelButton(this, cx, h * 0.5, 230, 62, 'PLAY', '🪳', PX_GREEN, go);
     } else {
-      this.drawFallbackMenu(w, h, cx, isTouch, go);
+      this.playBtn = this.drawFallbackMenu(w, h, cx, isTouch, go);
     }
 
     // music on/off toggle, bottom-right (music only — SFX stay on)
-    const size = 46;
-    let mt: { container: Phaser.GameObjects.Container; refresh: (on: boolean) => void };
-    mt = pixelToggle(
-      this, w - 16 - size / 2, h - 16 - size / 2, size, !Audio.musicMuted,
+    this.musicToggle = pixelToggle(
+      this, 0, 0, 46, !Audio.musicMuted,
       (on) => (on ? { emoji: '🎵', pal: PX_BLUE } : { emoji: '🔇', pal: PX_GREY }),
-      () => { const muted = Audio.toggleMusic(); mt.refresh(!muted); }
+      () => { const muted = Audio.toggleMusic(); this.musicToggle!.refresh(!muted); }
     );
+
+    this.layoutMenu(w, h);
+    // The header-hide can resize the game area just after create — re-cover the
+    // poster and reposition buttons so no background shows through.
+    const relayout = (): void => { this.scale.refresh(); this.layoutMenu(this.scale.width, this.scale.height); };
+    this.scale.on('resize', relayout, this);
+    this.time.delayedCall(60, relayout);
+    this.time.delayedCall(220, relayout);
+    this.events.once('shutdown', () => this.scale.off('resize', relayout, this));
 
     this.input.keyboard?.once('keydown-SPACE', go);
     this.input.keyboard?.once('keydown-ENTER', go);
   }
 
+  /** Cover the poster to the full frame and place PLAY (centre) + music button. */
+  private layoutMenu(w: number, h: number): void {
+    const cx = w / 2;
+    if (this.poster) {
+      const src = this.textures.get('menu_bg').getSourceImage();
+      const scale = Math.max(w / src.width, h / src.height);
+      this.poster.setPosition(cx, h / 2).setScale(scale);
+      this.playBtn?.setPosition(cx, h * 0.5);
+    } else {
+      this.playBtn?.setPosition(cx, h * 0.68);
+    }
+    this.musicToggle?.container.setPosition(w - 16 - 23, h - 16 - 23);
+  }
+
   // ---------------------------------------------- procedural fallback menu
 
-  private drawFallbackMenu(w: number, h: number, cx: number, isTouch: boolean, go: () => void): void {
+  private drawFallbackMenu(w: number, h: number, cx: number, isTouch: boolean, go: () => void): Phaser.GameObjects.Container {
     this.drawForest(w, h);
 
     const panelX = w * 0.07, panelY = h * 0.1, panelW = w * 0.86, panelH = h * 0.75;
@@ -100,7 +123,7 @@ export default class MenuScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(8);
     });
 
-    pixelButton(this, cx, h * 0.68, 220, 60, 'PLAY', '🪳', PX_GREEN, go);
+    const play = pixelButton(this, cx, h * 0.68, 220, 60, 'PLAY', '🪳', PX_GREEN, go);
 
     const best = getBest();
     if (best !== null) {
@@ -110,6 +133,7 @@ export default class MenuScene extends Phaser.Scene {
     }
 
     this.drawControls(cx, h, isTouch);
+    return play;
   }
 
   // ------------------------------------------------------------ forest scene
