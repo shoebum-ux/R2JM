@@ -60,13 +60,8 @@ export default class MenuScene extends Phaser.Scene {
     );
 
     this.layoutMenu(w, h);
-    // The header-hide can resize the game area just after create — re-cover the
-    // poster and reposition buttons so no background shows through.
-    const relayout = (): void => { this.scale.refresh(); this.layoutMenu(this.scale.width, this.scale.height); };
-    this.scale.on('resize', relayout, this);
-    this.time.delayedCall(60, relayout);
-    this.time.delayedCall(220, relayout);
-    this.events.once('shutdown', () => this.scale.off('resize', relayout, this));
+    // update() re-lays out whenever the frame size actually changes — no resize
+    // handler + refresh() loop, which could thrash the layout.
 
     this.input.keyboard?.once('keydown-SPACE', go);
     this.input.keyboard?.once('keydown-ENTER', go);
@@ -74,15 +69,18 @@ export default class MenuScene extends Phaser.Scene {
 
   /** Re-layout whenever the frame size changes (robust against late resizes). */
   update(): void {
-    if (this.scale.width !== this.lastW || this.scale.height !== this.lastH) {
-      this.lastW = this.scale.width;
-      this.lastH = this.scale.height;
-      this.layoutMenu(this.lastW, this.lastH);
+    const w = this.scale.width, h = this.scale.height;
+    if (w < 2 || h < 2) return; // ignore transient zero-size frames
+    if (w !== this.lastW || h !== this.lastH) {
+      this.lastW = w;
+      this.lastH = h;
+      this.layoutMenu(w, h);
     }
   }
 
   /** Cover the poster to the full frame and place PLAY + music button. */
   private layoutMenu(w: number, h: number): void {
+    if (w < 2 || h < 2) return;
     const cx = w / 2;
     if (this.poster) {
       // Scale to fill the width, anchor to the bottom (so all the bottom
