@@ -31,6 +31,8 @@ export default class UIScene extends Phaser.Scene {
   private mapY = 0;
   private mapScale = 1;
   private mapH = 0;
+  // Horizontal window left edge so the Connaught Place ring sits centred.
+  private mapViewX0 = RING.cx - WORLD.w / 2;
   private gasOverlay!: Phaser.GameObjects.Rectangle;
   private pauseOverlay!: Phaser.GameObjects.Container;
   private compass!: Phaser.GameObjects.Text;
@@ -186,7 +188,17 @@ export default class UIScene extends Phaser.Scene {
     this.drawMapBase();
   }
 
-  /** Ground + roads — static, redrawn only on layout. */
+  /** World x → minimap pixel x (ring-centred window, clamped to the box). */
+  private mx(wx: number): number {
+    return this.mapX + Phaser.Math.Clamp((wx - this.mapViewX0) * this.mapScale, 0, MAP_PX_W);
+  }
+
+  /** World y → minimap pixel y (clamped to the box). */
+  private my(wy: number): number {
+    return this.mapY + Phaser.Math.Clamp(wy * this.mapScale, 0, this.mapH);
+  }
+
+  /** Ground + roads + immunity zone — static, redrawn only on layout. */
   private drawMapBase(): void {
     const g = this.mapBase;
     const x = this.mapX, y = this.mapY, w = MAP_PX_W, mh = this.mapH, s = this.mapScale;
@@ -197,48 +209,38 @@ export default class UIScene extends Phaser.Scene {
     g.fillRoundedRect(x, y, w, mh, 4);                    // green ground
     g.lineStyle(1.6, 0xefe7d0, 0.9);
     for (const r of ROADS) {
-      g.lineBetween(x + r.x1 * s, y + r.y1 * s, x + r.x2 * s, y + r.y2 * s);
+      g.lineBetween(this.mx(r.x1), this.my(r.y1), this.mx(r.x2), this.my(r.y2));
     }
-    g.strokeCircle(x + RING.cx * s, y + RING.cy * s, RING.r * s);
+    g.strokeCircle(this.mx(RING.cx), this.my(RING.cy), RING.r * s);
+
+    // Immunity zone (Jantar Mantar) — green circle
+    const igr = Math.max(4, GOAL.r * s);
+    g.fillStyle(0x4fd06f, 0.4);
+    g.fillCircle(this.mx(GOAL.x), this.my(GOAL.y), igr);
+    g.lineStyle(1.6, 0x2f8a3a, 1);
+    g.strokeCircle(this.mx(GOAL.x), this.my(GOAL.y), igr);
   }
 
-  /** Moving markers — whole map visible, player/police/goal as dots. */
+  /** Moving markers — whole map visible, player/police as dots. */
   private drawMapDots(): void {
     const gs = this.game_;
-    const x = this.mapX, y = this.mapY, s = this.mapScale;
     const g = this.mapDots;
     g.clear();
 
-    // goal (Jantar Mantar) — red diamond
-    const gx = x + GOAL.x * s, gy = y + GOAL.y * s;
-    this.diamond(g, gx, gy, 4.5, 0xffffff);
-    this.diamond(g, gx, gy, 3, 0xe0332a);
-
     // police + detention bus
     g.fillStyle(0xff5a4a, 1);
-    for (const cop of gs.police) g.fillCircle(x + cop.x * s, y + cop.y * s, 1.6);
+    for (const cop of gs.police) g.fillCircle(this.mx(cop.x), this.my(cop.y), 1.6);
     if (gs.bus) {
       g.fillStyle(0xffa040, 1);
-      g.fillCircle(x + gs.bus.sprite.x * s, y + gs.bus.sprite.y * s, 2.2);
+      g.fillCircle(this.mx(gs.bus.sprite.x), this.my(gs.bus.sprite.y), 2.2);
     }
 
     // the roach
-    const rx = x + gs.player.x * s, ry = y + gs.player.y * s;
+    const rx = this.mx(gs.player.x), ry = this.my(gs.player.y);
     g.fillStyle(0xffffff, 1);
     g.fillCircle(rx, ry, 2.6);
     g.lineStyle(1, 0x2a241c, 1);
     g.strokeCircle(rx, ry, 2.6);
-  }
-
-  private diamond(g: Phaser.GameObjects.Graphics, x: number, y: number, r: number, color: number): void {
-    g.fillStyle(color, 1);
-    g.beginPath();
-    g.moveTo(x, y - r);
-    g.lineTo(x + r, y);
-    g.lineTo(x, y + r);
-    g.lineTo(x - r, y);
-    g.closePath();
-    g.fillPath();
   }
 
   // ------------------------------------------------------------------- loop

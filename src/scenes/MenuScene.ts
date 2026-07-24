@@ -90,7 +90,7 @@ export default class MenuScene extends Phaser.Scene {
       const dispH = src.height * scale;
       this.poster.setScale(scale).setPosition(cx, h - dispH / 2);
       const posterTop = h - dispH;
-      this.playBtn?.setPosition(cx, posterTop + dispH * 0.62);
+      this.playBtn?.setPosition(cx, posterTop + dispH * 0.62 - 40);
     } else {
       this.playBtn?.setPosition(cx, h * 0.68);
     }
