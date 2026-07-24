@@ -5,16 +5,15 @@
 
 import Phaser from 'phaser';
 import type GameScene from './GameScene';
-import { ROADS, RING, GOAL, BUILDINGS } from '../maps/DelhiMap';
+import { WORLD, ROADS, RING, GOAL } from '../maps/DelhiMap';
 import { FONT, CLEAR_FONT } from '../config';
 import { VirtualJoystick } from '../ui/VirtualJoystick';
 import { Audio } from '../audio/AudioManager';
 import { fmtTime } from '../systems/Save';
 import { pixelToggle, PX_BLUE, PX_GREY } from '../ui/Widgets';
 
-// Circular GTA-style radar, centred on the roach.
-const RADAR_R = 56;         // radius in pixels
-const RADAR_WORLD_R = 1250; // world units shown from centre to edge
+// Full-map minimap (rounded rect, GTA-green theme), bottom-left.
+const MAP_PX_W = 90; // minimap pixel width; height follows the world aspect
 
 export default class UIScene extends Phaser.Scene {
   joyVec = new Phaser.Math.Vector2();
@@ -26,13 +25,12 @@ export default class UIScene extends Phaser.Scene {
   private distLabel!: Phaser.GameObjects.Text;
   private timeLabel!: Phaser.GameObjects.Text;
   private buffLabel!: Phaser.GameObjects.Text;
-  private radarContent!: Phaser.GameObjects.Graphics;
-  private radarTop!: Phaser.GameObjects.Graphics;
-  private radarMaskG!: Phaser.GameObjects.Graphics;
-  private compassN!: Phaser.GameObjects.Text;
-  private compassS!: Phaser.GameObjects.Text;
-  private radarCx = 0;
-  private radarCy = 0;
+  private mapBase!: Phaser.GameObjects.Graphics;  // static ground + roads
+  private mapDots!: Phaser.GameObjects.Graphics;  // moving player/police/goal
+  private mapX = 0;
+  private mapY = 0;
+  private mapScale = 1;
+  private mapH = 0;
   private gasOverlay!: Phaser.GameObjects.Rectangle;
   private pauseOverlay!: Phaser.GameObjects.Container;
   private compass!: Phaser.GameObjects.Text;
@@ -62,16 +60,9 @@ export default class UIScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: '#6e5a2e', align: 'right'
     }).setOrigin(1, 0).setDepth(600);
 
-    // circular radar (content is clipped to a circle mask)
-    this.radarContent = this.add.graphics().setDepth(590);
-    this.radarTop = this.add.graphics().setDepth(592);
-    this.radarMaskG = this.make.graphics({});
-    this.radarContent.setMask(this.radarMaskG.createGeometryMask());
-    const compassStyle = { fontFamily: CLEAR_FONT, fontSize: '11px', fontStyle: 'bold' };
-    this.compassN = this.add.text(0, 0, 'N', { ...compassStyle, color: '#ffffff' })
-      .setOrigin(0.5).setDepth(593).setShadow(0, 1, 'rgba(0,0,0,0.8)', 0);
-    this.compassS = this.add.text(0, 0, 'S', { ...compassStyle, color: '#ff6a5a' })
-      .setOrigin(0.5).setDepth(593).setShadow(0, 1, 'rgba(0,0,0,0.8)', 0);
+    // full-map minimap (whole world visible)
+    this.mapBase = this.add.graphics().setDepth(590);
+    this.mapDots = this.add.graphics().setDepth(591);
 
     this.compass = this.add.text(0, 0, '🏛️', { fontSize: '20px' }).setOrigin(0.5).setDepth(600).setAlpha(0.85);
 
@@ -181,88 +172,62 @@ export default class UIScene extends Phaser.Scene {
     parts.panel.lineStyle(2, 0xd9c9a0, 1);
     parts.panel.strokeRoundedRect(px + 14, py + 14, pw - 28, ph - 28, 12);
 
-    this.layoutRadar(w, h);
+    this.layoutMap(w, h);
   }
 
-  // ------------------------------------------------------------------- radar
+  // ----------------------------------------------------------------- minimap
 
-  /** Position the circular radar (bottom-left) and update its clip mask. */
-  private layoutRadar(_w: number, h: number): void {
-    this.radarCx = RADAR_R + 18;
-    this.radarCy = h - RADAR_R - 16;
-    this.radarMaskG.clear();
-    this.radarMaskG.fillStyle(0xffffff, 1);
-    this.radarMaskG.fillCircle(this.radarCx, this.radarCy, RADAR_R);
-    this.compassN.setPosition(this.radarCx, this.radarCy - RADAR_R + 9);
-    this.compassS.setPosition(this.radarCx, this.radarCy + RADAR_R - 9);
+  /** Place the full-map minimap (bottom-left) and draw its static base. */
+  private layoutMap(_w: number, h: number): void {
+    this.mapScale = MAP_PX_W / WORLD.w;
+    this.mapH = WORLD.h * this.mapScale;
+    this.mapX = 16;
+    this.mapY = h - this.mapH - 16;
+    this.drawMapBase();
   }
 
-  /** GTA-style radar: world scrolls under a fixed roach arrow at the centre. */
-  private drawRadar(): void {
+  /** Ground + roads — static, redrawn only on layout. */
+  private drawMapBase(): void {
+    const g = this.mapBase;
+    const x = this.mapX, y = this.mapY, w = MAP_PX_W, mh = this.mapH, s = this.mapScale;
+    g.clear();
+    g.fillStyle(0x2a241c, 0.9);
+    g.fillRoundedRect(x - 3, y - 3, w + 6, mh + 6, 7);   // dark border
+    g.fillStyle(0x9ec47e, 1);
+    g.fillRoundedRect(x, y, w, mh, 4);                    // green ground
+    g.lineStyle(1.6, 0xefe7d0, 0.9);
+    for (const r of ROADS) {
+      g.lineBetween(x + r.x1 * s, y + r.y1 * s, x + r.x2 * s, y + r.y2 * s);
+    }
+    g.strokeCircle(x + RING.cx * s, y + RING.cy * s, RING.r * s);
+  }
+
+  /** Moving markers — whole map visible, player/police/goal as dots. */
+  private drawMapDots(): void {
     const gs = this.game_;
-    const cx = this.radarCx, cy = this.radarCy, R = RADAR_R;
-    const s = R / RADAR_WORLD_R;
-    const px = gs.player.x, py = gs.player.y;
-    const g = this.radarContent;
+    const x = this.mapX, y = this.mapY, s = this.mapScale;
+    const g = this.mapDots;
     g.clear();
 
-    // ground + buildings + roads (clipped to the circle by the mask)
-    g.fillStyle(0x9ec47e, 1);
-    g.fillCircle(cx, cy, R);
-    g.fillStyle(0xc2a878, 1);
-    for (const b of BUILDINGS) {
-      if (Math.abs(b.x + b.w / 2 - px) > RADAR_WORLD_R + 320) continue;
-      if (Math.abs(b.y + b.h / 2 - py) > RADAR_WORLD_R + 320) continue;
-      g.fillRect(cx + (b.x - px) * s, cy + (b.y - py) * s, b.w * s, b.h * s);
-    }
-    g.lineStyle(3, 0xefe7d0, 0.95);
-    for (const r of ROADS) {
-      g.lineBetween(cx + (r.x1 - px) * s, cy + (r.y1 - py) * s, cx + (r.x2 - px) * s, cy + (r.y2 - py) * s);
-    }
-    g.strokeCircle(cx + (RING.cx - px) * s, cy + (RING.cy - py) * s, RING.r * s);
+    // goal (Jantar Mantar) — red diamond
+    const gx = x + GOAL.x * s, gy = y + GOAL.y * s;
+    this.diamond(g, gx, gy, 4.5, 0xffffff);
+    this.diamond(g, gx, gy, 3, 0xe0332a);
 
     // police + detention bus
     g.fillStyle(0xff5a4a, 1);
-    for (const cop of gs.police) {
-      const dx = cop.x - px, dy = cop.y - py;
-      if (Math.hypot(dx, dy) * s < R - 3) g.fillCircle(cx + dx * s, cy + dy * s, 2);
-    }
+    for (const cop of gs.police) g.fillCircle(x + cop.x * s, y + cop.y * s, 1.6);
     if (gs.bus) {
-      const dx = gs.bus.sprite.x - px, dy = gs.bus.sprite.y - py;
-      if (Math.hypot(dx, dy) * s < R - 3) {
-        g.fillStyle(0xffa040, 1);
-        g.fillCircle(cx + dx * s, cy + dy * s, 2.6);
-      }
+      g.fillStyle(0xffa040, 1);
+      g.fillCircle(x + gs.bus.sprite.x * s, y + gs.bus.sprite.y * s, 2.2);
     }
 
-    // goal marker: a red diamond, clamped to the rim when out of range
-    const gdx = GOAL.x - px, gdy = GOAL.y - py;
-    const gdist = Math.hypot(gdx, gdy);
-    let mx = cx + gdx * s, my = cy + gdy * s;
-    if (gdist * s > R - 7) {
-      const a = Math.atan2(gdy, gdx);
-      mx = cx + Math.cos(a) * (R - 8);
-      my = cy + Math.sin(a) * (R - 8);
-    }
-    this.diamond(g, mx, my, 6, 0xffffff);
-    this.diamond(g, mx, my, 4, 0xe0332a);
-
-    // border ring + roach arrow (unclipped, on top)
-    const t = this.radarTop;
-    t.clear();
-    t.lineStyle(4, 0x2a241c, 1);
-    t.strokeCircle(cx, cy, R);
-    const dir = gs.player.sprite.rotation - Math.PI / 2;
-    const ax = Math.cos(dir), ay = Math.sin(dir), nx = -ay, ny = ax;
-    t.fillStyle(0xffffff, 1);
-    t.beginPath();
-    t.moveTo(cx + ax * 8, cy + ay * 8);
-    t.lineTo(cx - ax * 5 + nx * 5, cy - ay * 5 + ny * 5);
-    t.lineTo(cx - ax * 5 - nx * 5, cy - ay * 5 - ny * 5);
-    t.closePath();
-    t.fillPath();
-    t.lineStyle(1.5, 0x2a241c, 1);
-    t.strokePath();
+    // the roach
+    const rx = x + gs.player.x * s, ry = y + gs.player.y * s;
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(rx, ry, 2.6);
+    g.lineStyle(1, 0x2a241c, 1);
+    g.strokeCircle(rx, ry, 2.6);
   }
 
   private diamond(g: Phaser.GameObjects.Graphics, x: number, y: number, r: number, color: number): void {
@@ -314,6 +279,6 @@ export default class UIScene extends Phaser.Scene {
     this.compass.setPosition(cx + Math.cos(a) * 120, cy + Math.sin(a) * 120);
     this.compass.setAlpha(0.55 + 0.3 * Math.sin(now / 300));
 
-    this.drawRadar();
+    this.drawMapDots();
   }
 }

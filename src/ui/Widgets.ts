@@ -50,10 +50,11 @@ export function pixelButton(
   btn.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains);
   if (btn.input) btn.input.cursor = 'pointer';
   scene.tweens.add({ targets: btn, scale: 1.03, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-  btn.on('pointerover', () => btn.setY(y - 2));
-  btn.on('pointerout', () => btn.setY(y));
-  btn.on('pointerdown', () => btn.setY(y + 3));
-  btn.on('pointerup', () => { btn.setY(y); onClick(); });
+  // Feedback via alpha only — never move the button, or the cursor ends up off
+  // it and the pointerup click is lost.
+  btn.on('pointerover', () => btn.setAlpha(0.9));
+  btn.on('pointerout', () => btn.setAlpha(1));
+  btn.on('pointerup', () => { btn.setAlpha(1); onClick(); });
   return btn;
 }
 
