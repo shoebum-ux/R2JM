@@ -28,7 +28,8 @@ whenParentSized(() => {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'app',
-    backgroundColor: '#1c1a17',
+    // sky blue so the boot flash matches the menu (not a black canvas)
+    backgroundColor: '#5aa9dc',
     scale: {
       mode: Phaser.Scale.RESIZE,
       width: window.innerWidth,
@@ -59,6 +60,15 @@ whenParentSized(() => {
   // nudge it once the page is fully laid out.
   game.events.once('ready', () => game.scale.refresh());
   window.addEventListener('load', () => game.scale.refresh());
+
+  // RESIZE mode only watches the window, so it misses #app resizing when the
+  // in-game header is shown/hidden — leaving the canvas smaller than #app.
+  // A ResizeObserver on #app keeps the canvas exactly matched (no loop: the
+  // canvas is a flex child, so resizing it doesn't change #app's size).
+  const appEl = document.getElementById('app');
+  if (appEl && 'ResizeObserver' in window) {
+    new ResizeObserver(() => { if (game.isRunning) game.scale.refresh(); }).observe(appEl);
+  }
 
   // Fallback: in throttled/background tabs the texture-ready boot chain can
   // stall; if the game hasn't started shortly after load, kick it ourselves.
