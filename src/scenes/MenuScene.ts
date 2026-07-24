@@ -56,12 +56,23 @@ export default class MenuScene extends Phaser.Scene {
     this.musicToggle = pixelToggle(
       this, 0, 0, 46, !Audio.musicMuted,
       (on) => (on ? { emoji: '🎵', pal: PX_BLUE } : { emoji: '🔇', pal: PX_GREY }),
-      () => { const muted = Audio.toggleMusic(); this.musicToggle!.refresh(!muted); }
+      () => {
+        Audio.unlock();
+        const muted = Audio.toggleMusic();
+        if (!muted) Audio.startGameMusic();
+        this.musicToggle!.refresh(!muted);
+      }
     );
 
     this.layoutMenu(w, h);
     // update() re-lays out whenever the frame size actually changes — no resize
     // handler + refresh() loop, which could thrash the layout.
+
+    // Browsers block audio until a user gesture, so start the menu music on the
+    // first interaction; it continues seamlessly into the game.
+    const startMusic = (): void => { Audio.unlock(); Audio.startGameMusic(); };
+    this.input.once('pointerdown', startMusic);
+    this.input.keyboard?.once('keydown', startMusic);
 
     this.input.keyboard?.once('keydown-SPACE', go);
     this.input.keyboard?.once('keydown-ENTER', go);
