@@ -45,16 +45,19 @@ export function pixelButton(
     const ic = scene.add.text(w / 2 - 26, -1, icon, { fontSize: `${Math.floor(h * 0.5)}px` }).setOrigin(0.5);
     parts.push(ic);
   }
+  // Full-size transparent hit target: a Graphics child reports no bounds, which
+  // shrank the container's clickable region to just the text. A Rectangle has
+  // exact bounds, so the whole button is clickable.
+  const hit = scene.add.rectangle(0, 0, w, h, 0x000000, 0).setInteractive({ useHandCursor: true });
+  parts.push(hit);
 
-  const btn = scene.add.container(x, y, parts).setDepth(depth).setSize(w, h);
-  btn.setInteractive(new Phaser.Geom.Rectangle(-w / 2, -h / 2, w, h), Phaser.Geom.Rectangle.Contains);
-  if (btn.input) btn.input.cursor = 'pointer';
+  const btn = scene.add.container(x, y, parts).setDepth(depth);
   scene.tweens.add({ targets: btn, scale: 1.03, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   // Feedback via alpha only — never move the button, or the cursor ends up off
   // it and the pointerup click is lost.
-  btn.on('pointerover', () => btn.setAlpha(0.9));
-  btn.on('pointerout', () => btn.setAlpha(1));
-  btn.on('pointerup', () => { btn.setAlpha(1); onClick(); });
+  hit.on('pointerover', () => btn.setAlpha(0.9));
+  hit.on('pointerout', () => btn.setAlpha(1));
+  hit.on('pointerup', () => { btn.setAlpha(1); onClick(); });
   return btn;
 }
 
@@ -76,10 +79,9 @@ export function pixelToggle(
   };
   draw(initialOn);
 
-  const btn = scene.add.container(x, y, [g, label]).setDepth(depth).setSize(size, size);
-  btn.setInteractive(new Phaser.Geom.Rectangle(-size / 2, -size / 2, size, size), Phaser.Geom.Rectangle.Contains);
-  if (btn.input) btn.input.cursor = 'pointer';
-  btn.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
+  const hit = scene.add.rectangle(0, 0, size, size, 0x000000, 0).setInteractive({ useHandCursor: true });
+  const btn = scene.add.container(x, y, [g, label, hit]).setDepth(depth);
+  hit.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => {
     e.stopPropagation();
     onClick();
   });
