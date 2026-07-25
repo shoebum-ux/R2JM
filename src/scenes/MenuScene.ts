@@ -68,11 +68,24 @@ export default class MenuScene extends Phaser.Scene {
     // update() re-lays out whenever the frame size actually changes — no resize
     // handler + refresh() loop, which could thrash the layout.
 
-    // Browsers block audio until a user gesture, so start the menu music on the
-    // first interaction; it continues seamlessly into the game.
-    const startMusic = (): void => { Audio.unlock(); Audio.startGameMusic(); };
-    this.input.once('pointerdown', startMusic);
-    this.input.keyboard?.once('keydown', startMusic);
+    // Browsers block audio until a real user gesture — and that unlock must run
+    // in the DOM event, not Phaser's (later) input step. Listen on the document
+    // in the capture phase so it fires on the very first tap/key anywhere and
+    // can't be swallowed; start the menu music there. It continues into the game.
+    const remove = (): void => {
+      document.removeEventListener('pointerdown', domStart, true);
+      document.removeEventListener('touchstart', domStart, true);
+      document.removeEventListener('keydown', domStart, true);
+    };
+    function domStart(): void {
+      Audio.unlock();
+      Audio.startGameMusic();
+      remove();
+    }
+    document.addEventListener('pointerdown', domStart, true);
+    document.addEventListener('touchstart', domStart, true);
+    document.addEventListener('keydown', domStart, true);
+    this.events.once('shutdown', remove);
 
     this.input.keyboard?.once('keydown-SPACE', go);
     this.input.keyboard?.once('keydown-ENTER', go);
