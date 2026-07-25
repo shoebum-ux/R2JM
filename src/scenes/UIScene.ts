@@ -184,7 +184,8 @@ export default class UIScene extends Phaser.Scene {
     this.mapScale = MAP_PX_W / WORLD.w;
     this.mapH = WORLD.h * this.mapScale;
     this.mapX = 16;
-    this.mapY = h - this.mapH - 16;
+    // Lift it above social-media bottom overlays (Instagram profile/caption).
+    this.mapY = h - this.mapH - Math.round(h * 0.18);
     this.drawMapBase();
   }
 
