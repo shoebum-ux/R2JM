@@ -184,8 +184,9 @@ export default class UIScene extends Phaser.Scene {
     this.mapScale = MAP_PX_W / WORLD.w;
     this.mapH = WORLD.h * this.mapScale;
     this.mapX = 16;
-    // Lift it above social-media bottom overlays (Instagram profile/caption).
-    this.mapY = h - this.mapH - Math.round(h * 0.18);
+    // Lift it just above the Instagram profile row (avatar/username), so it
+    // clears the caption but doesn't float too high.
+    this.mapY = h - this.mapH - Math.round(h * 0.12);
     this.drawMapBase();
   }
 
